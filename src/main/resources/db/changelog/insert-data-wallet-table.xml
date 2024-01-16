@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2" author="Leonid" context="example-context" labels="example-label">
+        <comment>Inserting first wallet</comment>
+        <insert tableName="wallet">
+            <column name="wallet_id">f573aada-a739-422f-88cc-ec7aba921d6a</column>
+            <column name="amount" valueNumeric="1000"/>
+        </insert>
+        <insert tableName="wallet">
+            <column name="wallet_id">42cce541-80d8-43a6-85b0-b50f45659ba4</column>
+            <column name="amount" valueNumeric="500"/>
+        </insert>
+        <insert tableName="wallet">
+            <column name="wallet_id">81f1344e-3d15-49c2-95b7-5e26a772c10a</column>
+            <column name="amount" valueNumeric="200"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
