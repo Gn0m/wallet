@@ -1,4 +1,4 @@
-version: '1'
+version: "3.3"
 
 services:
   test-app:
@@ -9,13 +9,14 @@ services:
       - DB_PASSWORD=password
       - DB_USERNAME=user
       - DB_URL=jdbc:postgresql://db:5432/walletdb
-      - DB_DRIVER=org.postgresql.Driver
     ports:
-      - '8081:8080'
+      - '8080:8080'
     expose:
       - '8080'
     depends_on:
       - db
+    links:
+      - redis
   db:
     image: postgres:15
     container_name: container-db
@@ -25,3 +26,10 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - '64689:5432'
+    restart: always
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - '6379:6379'
+    restart: always

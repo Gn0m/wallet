@@ -8,12 +8,14 @@ import com.example.wallet.model.Wallet;
 import com.example.wallet.repo.WalletRepo;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import static com.example.wallet.exception.NotFoundWalletException.notFoundWallet;
 
@@ -23,11 +25,13 @@ import static com.example.wallet.exception.NotFoundWalletException.notFoundWalle
 public class WalletService implements WalletServiceInterface {
 
     private final WalletRepo repo;
-    private final Semaphore semaphore;
+    private final RedissonClient client;
+    private final RLock lock;
 
-    public WalletService(WalletRepo repo) {
+    public WalletService(WalletRepo repo, RedissonClient client) {
         this.repo = repo;
-        this.semaphore = new Semaphore(1, true);
+        this.client = client;
+        lock = this.client.getFairLock("lock");
     }
 
     public WalletDTO getWalletBalance(UUID uuid) {
@@ -50,14 +54,13 @@ public class WalletService implements WalletServiceInterface {
 
         WalletDTO walletDTO;
         BigDecimal afterChangeAmount = null;
-
         try {
-            semaphore.acquire();
+            lock.lock(2, TimeUnit.SECONDS);
+            log.info(Thread.currentThread().getName() + " lock");
             afterChangeAmount = getAfterChangeAmount(operationType, amount, wallet);
-            semaphore.release();
-        } catch (InterruptedException ex) {
-            log.warn("Interrupted! " + ex);
-            Thread.currentThread().interrupt();
+        } finally {
+            lock.unlock();
+            log.info(Thread.currentThread().getName() + " unlock");
         }
         walletDTO = new WalletDTO(uuid, afterChangeAmount);
 
