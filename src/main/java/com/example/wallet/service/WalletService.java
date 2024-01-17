@@ -25,13 +25,11 @@ import static com.example.wallet.exception.NotFoundWalletException.notFoundWalle
 public class WalletService implements WalletServiceInterface {
 
     private final WalletRepo repo;
-    private final RedissonClient client;
     private final RLock lock;
 
     public WalletService(WalletRepo repo, RedissonClient client) {
         this.repo = repo;
-        this.client = client;
-        lock = this.client.getFairLock("lock");
+        lock = client.getFairLock("lock");
     }
 
     public WalletDTO getWalletBalance(UUID uuid) {
@@ -53,7 +51,7 @@ public class WalletService implements WalletServiceInterface {
                 );
 
         WalletDTO walletDTO;
-        BigDecimal afterChangeAmount = null;
+        BigDecimal afterChangeAmount;
         try {
             lock.lock(2, TimeUnit.SECONDS);
             log.info(Thread.currentThread().getName() + " lock");
