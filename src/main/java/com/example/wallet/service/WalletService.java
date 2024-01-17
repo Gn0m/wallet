@@ -8,14 +8,12 @@ import com.example.wallet.model.Wallet;
 import com.example.wallet.repo.WalletRepo;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static com.example.wallet.exception.NotFoundWalletException.notFoundWallet;
 
@@ -25,11 +23,10 @@ import static com.example.wallet.exception.NotFoundWalletException.notFoundWalle
 public class WalletService implements WalletServiceInterface {
 
     private final WalletRepo repo;
-    private final RLock lock;
 
-    public WalletService(WalletRepo repo, RedissonClient client) {
+
+    public WalletService(WalletRepo repo) {
         this.repo = repo;
-        lock = client.getFairLock("lock");
     }
 
     public WalletDTO getWalletBalance(UUID uuid) {
@@ -39,27 +36,21 @@ public class WalletService implements WalletServiceInterface {
         return new WalletDTO(uuid, wallet.getAmount());
     }
 
+    @Transactional
     public WalletDTO changeBalance(ReplenishmentWalletDTO dto) {
         BigDecimal amount = dto.amount();
         OperationType operationType = dto.operationType();
         UUID uuid = dto.walletId();
         Wallet wallet;
 
-        wallet = repo.findById(uuid)
+        wallet = repo.findByIdAndLock(uuid)
                 .orElseThrow(
                         notFoundWallet("Кошелёк c uuid {0} не найден", uuid)
                 );
 
         WalletDTO walletDTO;
         BigDecimal afterChangeAmount;
-        try {
-            lock.lock(2, TimeUnit.SECONDS);
-            log.info(Thread.currentThread().getName() + " lock");
-            afterChangeAmount = getAfterChangeAmount(operationType, amount, wallet);
-        } finally {
-            lock.unlock();
-            log.info(Thread.currentThread().getName() + " unlock");
-        }
+        afterChangeAmount = getAfterChangeAmount(operationType, amount, wallet);
         walletDTO = new WalletDTO(uuid, afterChangeAmount);
 
         return walletDTO;
